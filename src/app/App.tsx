@@ -161,7 +161,7 @@ export default function App() {
       background: "linear-gradient(135deg, #070d1f 0%, #0d1530 50%, #070d1f 100%)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       fontFamily: "Inter, sans-serif", overflow: "hidden", position: "relative",
-      borderRadius: 16, boxSizing: "border-box",
+      borderRadius: 15, boxSizing: "border-box",
     }}>
 
       {/* Dot grid */}
