@@ -180,9 +180,6 @@ export default function App() {
         transition={{ duration: 0.65 }}
         style={{ textAlign: "center", marginBottom: 4, zIndex: 1 }}
       >
-        <div style={{ color: "#6366f1", fontSize: 10, letterSpacing: "0.26em", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
-          Sales Intelligence
-        </div>
         <h1 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em", margin: 0 }}>
           Схема работы с данными
         </h1>
