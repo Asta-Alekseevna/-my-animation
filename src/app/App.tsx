@@ -17,11 +17,11 @@ const SR = 36;
 const TOOLTIPS: Record<string, {
   title: string; text: string; px: number; py: number; pw: number; ph: number; color: string;
 }> = {
-  sites:  { title: "Сайты конкурентов",    text: "Укажите сайт конкурента (или свой) — и мы извлечём номера телефонов каждого посетителя.",                 px: 128, py: 60,  pw: 210, ph: 120, color: "#38bdf8" },
-  phones: { title: "Телефоны конкурентов", text: "Загрузите номера конкурентов — получите полный список их входящих и исходящих номеров.",                  px: 128, py: 320, pw: 210, ph: 120, color: "#34d399" },
-  center: { title: "Анализ данных",        text: "Собранные данные автоматически структурируются и передаются в наш колл-центр.",                            px: 180, py: 68,  pw: 252, ph: 110, color: "#818cf8" },
-  leads:  { title: "Тёплые лиды",          text: "Наш колл-центр обрабатывает номера по скрипту, отсеивая нецелевые в поиске тёплых лидов.",                px: 375, py: 68,  pw: 228, ph: 120, color: "#f472b6" },
-  deal:   { title: "Сделка",               text: "Вам остаётся только обработать полученных лидов и довести их до сделки.",                                  px: 365, py: 180, pw: 218, ph: 110, color: "#facc15" },
+  sites:  { title: "Сайты конкурентов",    text: "Укажите сайт конкурента (или свой) — и мы извлечём номера телефонов каждого посетителя.",           px: 128, py: 60,  pw: 210, ph: 120, color: "#38bdf8" },
+  phones: { title: "Телефоны конкурентов", text: "Загрузите номера конкурентов — получите полный список их входящих и исходящих номеров.",              px: 128, py: 320, pw: 210, ph: 120, color: "#34d399" },
+  center: { title: "Анализ данных",        text: "Собранные данные автоматически структурируются и передаются в наш колл-центр.",                        px: 180, py: 68,  pw: 252, ph: 110, color: "#818cf8" },
+  leads:  { title: "Тёплые лиды",          text: "Наш колл-центр обрабатывает номера по скрипту, отсеивая нецелевые в поиске тёплых лидов.",            px: 375, py: 68,  pw: 228, ph: 120, color: "#f472b6" },
+  deal:   { title: "Сделка",               text: "Вам остаётся только обработать полученных лидов и довести их до сделки.",                              px: 365, py: 180, pw: 218, ph: 110, color: "#facc15" },
 };
 
 // ─── Connections ──────────────────────────────────────────────────────────────
@@ -47,7 +47,6 @@ function dir(from: { x: number; y: number }, to: { x: number; y: number }) {
   return { nx: dx / d, ny: dy / d };
 }
 
-// ─── Dashed animated line ─────────────────────────────────────────────────────
 function DashedLine({ x1, y1, x2, y2, color, delay }: { x1: number; y1: number; x2: number; y2: number; color: string; delay: number }) {
   return (
     <motion.line
@@ -61,7 +60,6 @@ function DashedLine({ x1, y1, x2, y2, color, delay }: { x1: number; y1: number; 
   );
 }
 
-// ─── Flying particle ──────────────────────────────────────────────────────────
 function Particle({ x1, y1, x2, y2, color, delay }: { x1: number; y1: number; x2: number; y2: number; color: string; delay: number }) {
   return (
     <motion.circle
@@ -72,7 +70,6 @@ function Particle({ x1, y1, x2, y2, color, delay }: { x1: number; y1: number; x2
   );
 }
 
-// ─── Tooltip card ─────────────────────────────────────────────────────────────
 function TooltipCard({ id, active }: { id: string; active: boolean }) {
   const t = TOOLTIPS[id];
   if (!t) return null;
@@ -105,7 +102,6 @@ function TooltipCard({ id, active }: { id: string; active: boolean }) {
   );
 }
 
-// ─── Satellite node ───────────────────────────────────────────────────────────
 function SatNode({ node, active, onHover, idx }: {
   node: typeof NODES[0]; active: boolean; onHover: (id: string | null) => void; idx: number;
 }) {
@@ -146,7 +142,6 @@ function SatNode({ node, active, onHover, idx }: {
   );
 }
 
-// ─── Center node ──────────────────────────────────────────────────────────────
 function CenterNode({ active, onHover }: { active: boolean; onHover: (id: string | null) => void }) {
   const { x, y } = POS.center;
   return (
@@ -213,7 +208,7 @@ export default function App() {
       boxSizing: "border-box",
     }}>
 
-      {/* ── Dot grid background ── */}
+      {/* Dot grid */}
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05, pointerEvents: "none", zIndex: 0 }}>
         <defs>
           <pattern id="dotpat" width="28" height="28" patternUnits="userSpaceOnUse">
@@ -223,22 +218,24 @@ export default function App() {
         <rect width="100%" height="100%" fill="url(#dotpat)" />
       </svg>
 
-      {/* ── Ambient glow blobs ── */}
+      {/* Glow blobs */}
       <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 600, height: 260, background: "radial-gradient(ellipse, #6366f128 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
-      <div style={{ position: "absolute", bottom: 80, left: "8%", width: 300, height: 300, background: "radial-gradient(circle, #38bdf81a 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "absolute", bottom: 80, left: "8%",  width: 300, height: 300, background: "radial-gradient(circle, #38bdf81a 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
       <div style={{ position: "absolute", bottom: 60, right: "6%", width: 260, height: 260, background: "radial-gradient(circle, #f472b81a 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
 
-      {/* ── TEXT BLOCK — top, centered ── */}
+      {/* ══════════════════════════════════════
+          TEXT BLOCK — badge + heading + description
+          (кнопка перемещена ПОД анимацию)
+         ══════════════════════════════════════ */}
       <div style={{
         position: "relative", zIndex: 1,
         display: "flex", flexDirection: "column", alignItems: "center",
         textAlign: "center",
-        padding: "28px 24px 16px",
+        padding: "28px 24px 12px",
         gap: 16,
         width: "100%",
         maxWidth: 820,
       }}>
-
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
@@ -294,36 +291,11 @@ export default function App() {
         >
           Получайте целевые контакты и превращайте их в&nbsp;сделки через систему:
         </motion.p>
-
-        {/* CTA Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.3 }}
-        >
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 0 36px rgba(99,102,241,0.6)" }}
-            whileTap={{ scale: 0.97 }}
-            style={{
-              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 12,
-              padding: "15px 40px",
-              fontSize: 16,
-              fontWeight: 700,
-              fontFamily: "Montserrat, sans-serif",
-              cursor: "pointer",
-              letterSpacing: "0.03em",
-              boxShadow: "0 0 24px rgba(99,102,241,0.4), 0 4px 16px rgba(0,0,0,0.4)",
-            }}
-          >
-            Оставить заявку
-          </motion.button>
-        </motion.div>
       </div>
 
-      {/* ── ANIMATION ── */}
+      {/* ══════════════════════════════════════
+          ANIMATION — large schema
+         ══════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -332,14 +304,13 @@ export default function App() {
           position: "relative", zIndex: 1,
           width: "100%",
           maxWidth: 980,
-          padding: "0 16px 28px",
+          padding: "0 16px 0",
           boxSizing: "border-box",
           flex: 1,
           display: "flex",
           alignItems: "stretch",
         }}
       >
-        {/* Glass frame */}
         <div style={{
           width: "100%",
           borderRadius: 20,
@@ -351,7 +322,6 @@ export default function App() {
           padding: "8px",
           boxSizing: "border-box",
         }}>
-
           <motion.svg
             viewBox="0 48 720 438"
             preserveAspectRatio="xMidYMid meet"
@@ -372,7 +342,6 @@ export default function App() {
               ))}
             </defs>
 
-            {/* All schema content — vertically centred in viewBox */}
             <g>
               {/* Connection lines */}
               {CONNS.map((c) => {
@@ -420,7 +389,6 @@ export default function App() {
               {["sites", "phones", "center", "leads", "deal"].map(id => (
                 <TooltipCard key={id} id={id} active={active === id} />
               ))}
-
             </g>
           </motion.svg>
 
@@ -431,9 +399,8 @@ export default function App() {
             transition={{ delay: 2.2, duration: 0.6 }}
             style={{
               position: "absolute",
-              bottom: 14,
-              right: 20,
-              color: "rgba(148,163,184,0.45)",
+              bottom: 14, right: 20,
+              color: "rgba(148,163,184,0.4)",
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: "0.06em",
@@ -444,6 +411,38 @@ export default function App() {
             НАВЕДИТЕ НА БЛОК
           </motion.div>
         </div>
+      </motion.div>
+
+      {/* ══════════════════════════════════════
+          CTA BUTTON — под анимацией
+         ══════════════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.9 }}
+        style={{ position: "relative", zIndex: 1, padding: "28px 24px 36px" }}
+      >
+        <motion.a
+          href="https://conversion-lab.tilda.ws/#rec2213007531"
+          whileHover={{ scale: 1.05, boxShadow: "0 0 44px rgba(99,102,241,0.65)" }}
+          whileTap={{ scale: 0.97 }}
+          style={{
+            display: "inline-block",
+            background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+            color: "#fff",
+            textDecoration: "none",
+            borderRadius: 14,
+            padding: "19px 52px",
+            fontSize: 18,
+            fontWeight: 700,
+            fontFamily: "Montserrat, sans-serif",
+            cursor: "pointer",
+            letterSpacing: "0.03em",
+            boxShadow: "0 0 28px rgba(99,102,241,0.45), 0 6px 20px rgba(0,0,0,0.4)",
+          }}
+        >
+          Оставить заявку
+        </motion.a>
       </motion.div>
 
     </div>
