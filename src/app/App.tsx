@@ -10,8 +10,8 @@ const POS = {
   leads:  { x: 500, y: 255 },
   deal:   { x: 638, y: 255 },
 };
-const CR = 50;  // center radius
-const SR = 36;  // satellite radius
+const CR = 50;
+const SR = 36;
 
 // ─── Tooltip data ─────────────────────────────────────────────────────────────
 const TOOLTIPS: Record<string, {
@@ -24,7 +24,7 @@ const TOOLTIPS: Record<string, {
   deal:   { title: "Сделка",               text: "Вам остаётся только обработать полученных лидов и довести их до сделки.",                                       px: 372, py: 183, pw: 218, ph: 110, color: "#facc15" },
 };
 
-// ─── Connections ─────────────────────────────────────────────────────────────
+// ─── Connections ──────────────────────────────────────────────────────────────
 const CONNS = [
   { id: "s-c", from: POS.sites,  to: POS.center, color: "#38bdf8", delay: 0.0, r1: SR, r2: CR },
   { id: "p-c", from: POS.phones, to: POS.center, color: "#34d399", delay: 0.7, r1: SR, r2: CR },
@@ -119,27 +119,22 @@ function SatNode({ node, active, onHover, idx }: {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, delay: 0.2 + idx * 0.1, type: "spring", bounce: 0.4 }}
     >
-      {/* Pulse ring */}
       <motion.circle cx={x} cy={y} r={SR + 4} fill="none" stroke={color} strokeWidth="1"
         animate={{ r: [SR + 3, SR + 17], opacity: [0.45, 0] }}
         transition={{ duration: 2.4, repeat: Infinity, delay: idx * 0.45 }}
       />
-      {/* Soft glow */}
       <circle cx={x} cy={y} r={SR + 8} fill={color} opacity={0.1} style={{ filter: "blur(8px)" }} />
-      {/* Main circle */}
       <motion.circle cx={x} cy={y} r={SR}
         fill={active ? color : "#1a2540"}
         stroke={color}
         strokeWidth={active ? 2.5 : 1.8}
         transition={{ duration: 0.15 }}
       />
-      {/* Icon via foreignObject */}
       <foreignObject x={x - 13} y={y - 13} width={26} height={26} style={{ pointerEvents: "none" }}>
         <div style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", color: active ? "#fff" : color }}>
           <Icon size={15} />
         </div>
       </foreignObject>
-      {/* Labels */}
       {lines.map((line, li) => (
         <text key={li} x={x} y={y + SR + 17 + li * 16}
           textAnchor="middle"
@@ -163,34 +158,27 @@ function CenterNode({ active, onHover }: { active: boolean; onHover:(id:string|n
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, type: "spring", bounce: 0.3 }}
     >
-      {/* Rotating ring 1 */}
       <motion.circle cx={x} cy={y} r={68} fill="none" stroke="#6366f1" strokeWidth="1" strokeDasharray="7 5"
         animate={{ rotate: 360 }}
         style={{ originX: `${x}px`, originY: `${y}px` }}
         transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
       />
-      {/* Rotating ring 2 */}
       <motion.circle cx={x} cy={y} r={82} fill="none" stroke="#818cf8" strokeWidth="0.6" strokeDasharray="3 9"
         animate={{ rotate: -360 }}
         style={{ originX: `${x}px`, originY: `${y}px` }}
         transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
       />
-      {/* Pulse halo */}
       <motion.circle cx={x} cy={y} r={55} fill="#6366f1" opacity={0.13}
         animate={{ r: [51, 63, 51] }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* Glow backdrop */}
       <circle cx={x} cy={y} r={CR + 12} fill="#6366f1" opacity={0.15} style={{ filter: "blur(14px)" }} />
-      {/* Main fill */}
       <circle cx={x} cy={y} r={CR} fill="url(#cGrad)" />
-      {/* Icon */}
       <foreignObject x={x - 20} y={y - 21} width={40} height={40} style={{ pointerEvents: "none" }}>
         <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
           <BarChart2 size={25} />
         </div>
       </foreignObject>
-      {/* Label */}
       <text x={x} y={y + CR + 17} textAnchor="middle"
         fill={active ? "#a5b4fc" : "#f1f5f9"}
         fontSize="12.5" fontWeight="800" fontFamily="Montserrat, sans-serif"
@@ -231,7 +219,7 @@ export default function App() {
         <rect width="100%" height="100%" fill="url(#dotpat)" />
       </svg>
 
-      {/* SVG diagram — fills the whole container */}
+      {/* SVG diagram */}
       <motion.svg
         viewBox="0 0 720 560"
         preserveAspectRatio="xMidYMid meet"
@@ -256,64 +244,67 @@ export default function App() {
           ))}
         </defs>
 
-        {/* ── Connection lines ── */}
-        {CONNS.map((c) => {
-          const { nx, ny } = dir(c.from, c.to);
-          const lx1 = c.from.x + nx * (c.r1 + 2),  ly1 = c.from.y + ny * (c.r1 + 2);
-          const lx2 = c.to.x   - nx * (c.r2 + 9),  ly2 = c.to.y   - ny * (c.r2 + 9);
-          const hl = active === null
-            || (c.id === "s-c" && (active === "sites"  || active === "center"))
-            || (c.id === "p-c" && (active === "phones" || active === "center"))
-            || (c.id === "c-l" && (active === "center" || active === "leads"))
-            || (c.id === "l-d" && (active === "leads"  || active === "deal"));
+        {/* ── Весь контент сдвинут на 47px вниз для вертикального центрирования ── */}
+        <g transform="translate(0, 47)">
 
-          return (
-            <g key={c.id} opacity={hl ? 1 : 0.1} style={{ transition: "opacity 0.3s" }}>
-              <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke={c.color} strokeWidth="0.8" opacity={0.18} />
-              <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke="transparent" strokeWidth="1.5" markerEnd={`url(#mk-${c.id})`} />
-              <DashedLine x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay} />
-              <Particle x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay} />
-              <Particle x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay + 0.9} />
+          {/* ── Title ── */}
+          <motion.text
+            x="360" y="38"
+            textAnchor="middle"
+            fill="#f1f5f9"
+            fontSize="32" fontWeight="800" fontFamily="Montserrat, sans-serif"
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65 }}
+          >Схема работы с данными</motion.text>
+
+          {/* ── Connection lines ── */}
+          {CONNS.map((c) => {
+            const { nx, ny } = dir(c.from, c.to);
+            const lx1 = c.from.x + nx * (c.r1 + 2),  ly1 = c.from.y + ny * (c.r1 + 2);
+            const lx2 = c.to.x   - nx * (c.r2 + 9),  ly2 = c.to.y   - ny * (c.r2 + 9);
+            const hl = active === null
+              || (c.id === "s-c" && (active === "sites"  || active === "center"))
+              || (c.id === "p-c" && (active === "phones" || active === "center"))
+              || (c.id === "c-l" && (active === "center" || active === "leads"))
+              || (c.id === "l-d" && (active === "leads"  || active === "deal"));
+            return (
+              <g key={c.id} opacity={hl ? 1 : 0.1} style={{ transition: "opacity 0.3s" }}>
+                <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke={c.color} strokeWidth="0.8" opacity={0.18} />
+                <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke="transparent" strokeWidth="1.5" markerEnd={`url(#mk-${c.id})`} />
+                <DashedLine x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay} />
+                <Particle x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay} />
+                <Particle x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay + 0.9} />
+              </g>
+            );
+          })}
+
+          {/* ── Satellite nodes ── */}
+          {NODES.map((node, i) => (
+            <g key={node.id} opacity={dim(node.id) ? 0.18 : 1} style={{ transition: "opacity 0.3s" }}>
+              <SatNode node={node} active={active === node.id} onHover={setActive} idx={i} />
             </g>
-          );
-        })}
+          ))}
 
-        {/* ── Satellite nodes ── */}
-        {NODES.map((node, i) => (
-          <g key={node.id} opacity={dim(node.id) ? 0.18 : 1} style={{ transition: "opacity 0.3s" }}>
-            <SatNode node={node} active={active === node.id} onHover={setActive} idx={i} />
+          {/* ── Center node ── */}
+          <g opacity={dim("center") ? 0.18 : 1} style={{ transition: "opacity 0.3s" }}>
+            <CenterNode active={active === "center"} onHover={setActive} />
           </g>
-        ))}
 
-        {/* ── Center node ── */}
-        <g opacity={dim("center") ? 0.18 : 1} style={{ transition: "opacity 0.3s" }}>
-          <CenterNode active={active === "center"} onHover={setActive} />
+          {/* ── Flow labels ── */}
+          {flowLabels.map((l, i) => (
+            <motion.text key={i} x={l.x} y={l.y} textAnchor="middle"
+              fill={l.color} fontSize="9" fontWeight="700" fontFamily="Montserrat, sans-serif"
+              initial={{ opacity: 0 }} animate={{ opacity: 0.65 }}
+              transition={{ delay: 0.9 + i * 0.12 }}
+            >{l.text}</motion.text>
+          ))}
+
+          {/* ── Tooltip cards (поверх всего) ── */}
+          {["sites", "phones", "center", "leads", "deal"].map(id => (
+            <TooltipCard key={id} id={id} active={active === id} />
+          ))}
+
         </g>
-
-        {/* ── Flow labels ── */}
-        {flowLabels.map((l, i) => (
-          <motion.text key={i} x={l.x} y={l.y} textAnchor="middle"
-            fill={l.color} fontSize="9" fontWeight="700" fontFamily="Montserrat, sans-serif"
-            initial={{ opacity: 0 }} animate={{ opacity: 0.65 }}
-            transition={{ delay: 0.9 + i * 0.12 }}
-          >{l.text}</motion.text>
-        ))}
-
-        {/* ── Title ── */}
-        <motion.text
-          x="360" y="38"
-          textAnchor="middle"
-          fill="#f1f5f9"
-          fontSize="32" fontWeight="800" fontFamily="Montserrat, sans-serif"
-          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65 }}
-        >Схема работы с данными</motion.text>
-
-        {/* ── Tooltip cards (rendered last = on top) ── */}
-        {["sites", "phones", "center", "leads", "deal"].map(id => (
-          <TooltipCard key={id} id={id} active={active === id} />
-        ))}
-
       </motion.svg>
     </div>
   );
