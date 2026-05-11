@@ -1,353 +1,290 @@
-"use client";
+import { useState } from "react";
+import { motion } from "motion/react";
+import { BarChart2, Globe, Phone, Users, Trophy } from "lucide-react";
 
-import * as React from "react";
-import * as RechartsPrimitive from "recharts";
+// ─── Layout constants ─────────────────────────────────────────────────────────
+const POS = {
+  sites:  { x: 110,  y: 120 },
+  phones: { x: 110,  y: 370 },
+  center: { x: 390, y: 245 },
+  leads:  { x: 650, y: 245 },
+  deal:   { x: 860, y: 245 },
+};
+const CR = 50;
+const SR = 36;
 
-import { cn } from "./utils";
-
-// Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: ".dark" } as const;
-
-export type ChartConfig = {
-  [k in string]: {
-    label?: React.ReactNode;
-    icon?: React.ComponentType;
-  } & (
-    | { color?: string; theme?: never }
-    | { color?: never; theme: Record<keyof typeof THEMES, string> }
-  );
+// ─── Tooltip data ─────────────────────────────────────────────────────────────
+const TOOLTIPS: Record<string, {
+  title: string; text: string; px: number; py: number; pw: number; ph: number; color: string;
+}> = {
+  sites:  { title: "Сайты конкурентов",    text: "Укажите сайт конкурента (или свой) — и мы извлечём номера телефонов каждого посетителя.",                     px: 158, py: 55,  pw: 208, ph: 120, color: "#38bdf8" },
+  phones: { title: "Телефоны конкурентов", text: "Загрузите номера конкурентов для сбора данных — получите полный список их входящих и исходящих номеров.",       px: 158, py: 305, pw: 208, ph: 130, color: "#34d399" },
+  center: { title: "Анализ данных",        text: "Собранные данные автоматически структурируются и передаются в наш колл-центр.",                                 px: 265, py: 70,  pw: 252, ph: 110, color: "#818cf8" },
+  leads:  { title: "Тёплые лиды",          text: "Наш колл-центр обрабатывает номера по скрипту, отсеивая нецелевые в поиске тёплых лидов.",                     px: 510, py: 70,  pw: 228, ph: 120, color: "#f472b6" },
+  deal:   { title: "Сделка",               text: "Вам остаётся только обработать полученных лидов и довести их до сделки.",                                       px: 690, py: 155, pw: 218, ph: 110, color: "#facc15" },
 };
 
-type ChartContextProps = {
-  config: ChartConfig;
-};
+// ─── Connections ──────────────────────────────────────────────────────────────
+const CONNS = [
+  { id: "s-c", from: POS.sites,  to: POS.center, color: "#38bdf8", delay: 0.0, r1: SR, r2: CR },
+  { id: "p-c", from: POS.phones, to: POS.center, color: "#34d399", delay: 0.7, r1: SR, r2: CR },
+  { id: "c-l", from: POS.center, to: POS.leads,  color: "#a78bfa", delay: 1.3, r1: CR, r2: SR },
+  { id: "l-d", from: POS.leads,  to: POS.deal,   color: "#facc15", delay: 1.9, r1: SR, r2: SR },
+];
 
-const ChartContext = React.createContext<ChartContextProps | null>(null);
+// ─── Satellite node definitions ───────────────────────────────────────────────
+const NODES = [
+  { id: "sites",  pos: POS.sites,  lines: ["Сайты",    "конкурентов"], Icon: Globe,  color: "#38bdf8" },
+  { id: "phones", pos: POS.phones, lines: ["Телефоны", "конкурентов"], Icon: Phone,  color: "#34d399" },
+  { id: "leads",  pos: POS.leads,  lines: ["Тёплые",   "лиды"],        Icon: Users,  color: "#f472b6" },
+  { id: "deal",   pos: POS.deal,   lines: ["Сделка"],                  Icon: Trophy, color: "#facc15" },
+];
 
-function useChart() {
-  const context = React.useContext(ChartContext);
-
-  if (!context) {
-    throw new Error("useChart must be used within a <ChartContainer />");
-  }
-
-  return context;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function dir(from: {x:number;y:number}, to: {x:number;y:number}) {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const d  = Math.sqrt(dx * dx + dy * dy);
+  return { nx: dx / d, ny: dy / d };
 }
 
-function ChartContainer({
-  id,
-  className,
-  children,
-  config,
-  ...props
-}: React.ComponentProps<"div"> & {
-  config: ChartConfig;
-  children: React.ComponentProps<
-    typeof RechartsPrimitive.ResponsiveContainer
-  >["children"];
-}) {
-  const uniqueId = React.useId();
-  const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
-
+// ─── Dashed animated line ─────────────────────────────────────────────────────
+function DashedLine({ x1,y1,x2,y2,color,delay }: { x1:number;y1:number;x2:number;y2:number;color:string;delay:number }) {
   return (
-    <ChartContext.Provider value={{ config }}>
-      <div
-        data-slot="chart"
-        data-chart={chartId}
-        className={cn(
-          "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
-          className,
-        )}
-        {...props}
-      >
-        <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer>
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
-      </div>
-    </ChartContext.Provider>
-  );
-}
-
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color,
-  );
-
-  if (!colorConfig.length) {
-    return null;
-  }
-
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
-      }}
+    <motion.line
+      x1={x1} y1={y1} x2={x2} y2={y2}
+      stroke={color} strokeWidth="1.8" strokeLinecap="round"
+      strokeDasharray="8 6"
+      style={{ strokeDashoffset: 0 }}
+      animate={{ opacity: [0.2, 0.65, 0.2] }}
+      transition={{ opacity: { duration: 2.6, repeat: Infinity, delay } }}
     />
   );
-};
+}
 
-const ChartTooltip = RechartsPrimitive.Tooltip;
+// ─── Flying particle ──────────────────────────────────────────────────────────
+function Particle({ x1,y1,x2,y2,color,delay }: { x1:number;y1:number;x2:number;y2:number;color:string;delay:number }) {
+  return (
+    <motion.circle
+      r={3.5} fill={color}
+      animate={{ cx: [x1, x2], cy: [y1, y2], opacity: [0, 1, 1, 0] }}
+      transition={{ duration: 1.9, repeat: Infinity, delay, ease: "easeInOut", times: [0, 0.1, 0.88, 1] }}
+    />
+  );
+}
 
-function ChartTooltipContent({
-  active,
-  payload,
-  className,
-  indicator = "dot",
-  hideLabel = false,
-  hideIndicator = false,
-  label,
-  labelFormatter,
-  labelClassName,
-  formatter,
-  color,
-  nameKey,
-  labelKey,
-}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<"div"> & {
-    hideLabel?: boolean;
-    hideIndicator?: boolean;
-    indicator?: "line" | "dot" | "dashed";
-    nameKey?: string;
-    labelKey?: string;
-  }) {
-  const { config } = useChart();
-
-  const tooltipLabel = React.useMemo(() => {
-    if (hideLabel || !payload?.length) {
-      return null;
-    }
-
-    const [item] = payload;
-    const key = `${labelKey || item?.dataKey || item?.name || "value"}`;
-    const itemConfig = getPayloadConfigFromPayload(config, item, key);
-    const value =
-      !labelKey && typeof label === "string"
-        ? config[label as keyof typeof config]?.label || label
-        : itemConfig?.label;
-
-    if (labelFormatter) {
-      return (
-        <div className={cn("font-medium", labelClassName)}>
-          {labelFormatter(value, payload)}
+// ─── Tooltip card ─────────────────────────────────────────────────────────────
+function TooltipCard({ id, active }: { id: string; active: boolean }) {
+  const t = TOOLTIPS[id];
+  if (!t) return null;
+  return (
+    <foreignObject x={t.px} y={t.py} width={t.pw} height={t.ph} style={{ overflow: "visible", pointerEvents: "none" }}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.82, y: 8 }}
+        animate={active ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.82, y: 8 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        style={{
+          background: "rgba(7, 13, 31, 0.96)",
+          border: `1px solid ${t.color}40`,
+          borderLeft: `3px solid ${t.color}`,
+          borderRadius: 10,
+          padding: "10px 13px",
+          boxShadow: `0 0 20px ${t.color}25, 0 6px 24px rgba(0,0,0,0.6)`,
+          fontFamily: "Montserrat, sans-serif",
+          width: "100%",
+          boxSizing: "border-box" as const,
+        }}
+      >
+        <div style={{ color: t.color, fontSize: 11, fontWeight: 700, marginBottom: 6, letterSpacing: "0.05em", textTransform: "uppercase" as const }}>
+          {t.title}
         </div>
-      );
-    }
-
-    if (!value) {
-      return null;
-    }
-
-    return <div className={cn("font-medium", labelClassName)}>{value}</div>;
-  }, [
-    label,
-    labelFormatter,
-    payload,
-    hideLabel,
-    labelClassName,
-    config,
-    labelKey,
-  ]);
-
-  if (!active || !payload?.length) {
-    return null;
-  }
-
-  const nestLabel = payload.length === 1 && indicator !== "dot";
-
-  return (
-    <div
-      className={cn(
-        "border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl",
-        className,
-      )}
-    >
-      {!nestLabel ? tooltipLabel : null}
-      <div className="grid gap-1.5">
-        {payload.map((item, index) => {
-          const key = `${nameKey || item.name || item.dataKey || "value"}`;
-          const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
-
-          return (
-            <div
-              key={item.dataKey}
-              className={cn(
-                "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
-                indicator === "dot" && "items-center",
-              )}
-            >
-              {formatter && item?.value !== undefined && item.name ? (
-                formatter(item.value, item.name, item, index, item.payload)
-              ) : (
-                <>
-                  {itemConfig?.icon ? (
-                    <itemConfig.icon />
-                  ) : (
-                    !hideIndicator && (
-                      <div
-                        className={cn(
-                          "shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)",
-                          {
-                            "h-2.5 w-2.5": indicator === "dot",
-                            "w-1": indicator === "line",
-                            "w-0 border-[1.5px] border-dashed bg-transparent":
-                              indicator === "dashed",
-                            "my-0.5": nestLabel && indicator === "dashed",
-                          },
-                        )}
-                        style={
-                          {
-                            "--color-bg": indicatorColor,
-                            "--color-border": indicatorColor,
-                          } as React.CSSProperties
-                        }
-                      />
-                    )
-                  )}
-                  <div
-                    className={cn(
-                      "flex flex-1 justify-between leading-none",
-                      nestLabel ? "items-end" : "items-center",
-                    )}
-                  >
-                    <div className="grid gap-1.5">
-                      {nestLabel ? tooltipLabel : null}
-                      <span className="text-muted-foreground">
-                        {itemConfig?.label || item.name}
-                      </span>
-                    </div>
-                    {item.value && (
-                      <span className="text-foreground font-mono font-medium tabular-nums">
-                        {item.value.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+        <div style={{ color: "#94a3b8", fontSize: 10.5, lineHeight: 1.6, fontWeight: 500 }}>
+          {t.text}
+        </div>
+      </motion.div>
+    </foreignObject>
   );
 }
 
-const ChartLegend = RechartsPrimitive.Legend;
-
-function ChartLegendContent({
-  className,
-  hideIcon = false,
-  payload,
-  verticalAlign = "bottom",
-  nameKey,
-}: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-    hideIcon?: boolean;
-    nameKey?: string;
-  }) {
-  const { config } = useChart();
-
-  if (!payload?.length) {
-    return null;
-  }
-
+// ─── Satellite node ───────────────────────────────────────────────────────────
+function SatNode({ node, active, onHover, idx }: {
+  node: typeof NODES[0]; active: boolean; onHover:(id:string|null)=>void; idx:number;
+}) {
+  const { Icon, color, pos: { x, y }, lines } = node;
   return (
-    <div
-      className={cn(
-        "flex items-center justify-center gap-4",
-        verticalAlign === "top" ? "pb-3" : "pt-3",
-        className,
-      )}
+    <motion.g
+      style={{ cursor: "pointer" }}
+      onMouseEnter={() => onHover(node.id)}
+      onMouseLeave={() => onHover(null)}
+      initial={{ opacity: 0, scale: 0.3 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay: 0.2 + idx * 0.1, type: "spring", bounce: 0.4 }}
     >
-      {payload.map((item) => {
-        const key = `${nameKey || item.dataKey || "value"}`;
-        const itemConfig = getPayloadConfigFromPayload(config, item, key);
-
-        return (
-          <div
-            key={item.value}
-            className={cn(
-              "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
-            )}
-          >
-            {itemConfig?.icon && !hideIcon ? (
-              <itemConfig.icon />
-            ) : (
-              <div
-                className="h-2 w-2 shrink-0 rounded-[2px]"
-                style={{
-                  backgroundColor: item.color,
-                }}
-              />
-            )}
-            {itemConfig?.label}
-          </div>
-        );
-      })}
-    </div>
+      <motion.circle cx={x} cy={y} r={SR + 4} fill="none" stroke={color} strokeWidth="1"
+        animate={{ r: [SR + 3, SR + 17], opacity: [0.45, 0] }}
+        transition={{ duration: 2.4, repeat: Infinity, delay: idx * 0.45 }}
+      />
+      <circle cx={x} cy={y} r={SR + 8} fill={color} opacity={0.1} style={{ filter: "blur(8px)" }} />
+      <motion.circle cx={x} cy={y} r={SR}
+        fill={active ? color : "#1a2540"}
+        stroke={color}
+        strokeWidth={active ? 2.5 : 1.8}
+        transition={{ duration: 0.15 }}
+      />
+      <foreignObject x={x - 13} y={y - 13} width={26} height={26} style={{ pointerEvents: "none" }}>
+        <div style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", color: active ? "#fff" : color }}>
+          <Icon size={15} />
+        </div>
+      </foreignObject>
+      {lines.map((line, li) => (
+        <text key={li} x={x} y={y + SR + 17 + li * 16}
+          textAnchor="middle"
+          fill={active ? color : "#cbd5e1"}
+          fontSize="11.5" fontWeight="700" fontFamily="Montserrat, sans-serif"
+        >{line}</text>
+      ))}
+    </motion.g>
   );
 }
 
-// Helper to extract item config from a payload.
-function getPayloadConfigFromPayload(
-  config: ChartConfig,
-  payload: unknown,
-  key: string,
-) {
-  if (typeof payload !== "object" || payload === null) {
-    return undefined;
-  }
-
-  const payloadPayload =
-    "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
-      ? payload.payload
-      : undefined;
-
-  let configLabelKey: string = key;
-
-  if (
-    key in payload &&
-    typeof payload[key as keyof typeof payload] === "string"
-  ) {
-    configLabelKey = payload[key as keyof typeof payload] as string;
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
-  ) {
-    configLabelKey = payloadPayload[
-      key as keyof typeof payloadPayload
-    ] as string;
-  }
-
-  return configLabelKey in config
-    ? config[configLabelKey]
-    : config[key as keyof typeof config];
+// ─── Center node ──────────────────────────────────────────────────────────────
+function CenterNode({ active, onHover }: { active: boolean; onHover:(id:string|null)=>void }) {
+  const { x, y } = POS.center;
+  return (
+    <motion.g
+      style={{ cursor: "pointer" }}
+      onMouseEnter={() => onHover("center")}
+      onMouseLeave={() => onHover(null)}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, type: "spring", bounce: 0.3 }}
+    >
+      <motion.circle cx={x} cy={y} r={68} fill="none" stroke="#6366f1" strokeWidth="1" strokeDasharray="7 5"
+        animate={{ rotate: 360 }}
+        style={{ originX: `${x}px`, originY: `${y}px` }}
+        transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.circle cx={x} cy={y} r={82} fill="none" stroke="#818cf8" strokeWidth="0.6" strokeDasharray="3 9"
+        animate={{ rotate: -360 }}
+        style={{ originX: `${x}px`, originY: `${y}px` }}
+        transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.circle cx={x} cy={y} r={55} fill="#6366f1" opacity={0.13}
+        animate={{ r: [51, 63, 51] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <circle cx={x} cy={y} r={CR + 12} fill="#6366f1" opacity={0.15} style={{ filter: "blur(14px)" }} />
+      <circle cx={x} cy={y} r={CR} fill="url(#cGrad)" />
+      <foreignObject x={x - 20} y={y - 21} width={40} height={40} style={{ pointerEvents: "none" }}>
+        <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+          <BarChart2 size={25} />
+        </div>
+      </foreignObject>
+      <text x={x} y={y + CR + 17} textAnchor="middle"
+        fill={active ? "#a5b4fc" : "#f1f5f9"}
+        fontSize="12.5" fontWeight="800" fontFamily="Montserrat, sans-serif"
+      >Анализ данных</text>
+    </motion.g>
+  );
 }
 
-export {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  ChartStyle,
-};
+// ─── App ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [active, setActive] = useState<string | null>(null);
+  const dim = (id: string) => active !== null && active !== id;
+
+  const flowLabels = [
+    { x: (POS.sites.x  + POS.center.x) / 2 - 20, y: (POS.sites.y  + POS.center.y) / 2 - 12, text: "СБОР",      color: "#38bdf8" },
+    { x: (POS.phones.x + POS.center.x) / 2 - 20, y: (POS.phones.y + POS.center.y) / 2 + 14, text: "СБОР",      color: "#34d399" },
+    { x: (POS.center.x + POS.leads.x)  / 2,       y: POS.center.y - 20,                       text: "АНАЛИЗ",    color: "#a78bfa" },
+    { x: (POS.leads.x  + POS.deal.x)   / 2,       y: POS.leads.y  - 20,                       text: "КОНВЕРСИЯ", color: "#facc15" },
+  ];
+
+  return (
+    <div style={{
+      width: "1357px",
+      height: "670px",
+      background: "transparent",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: "Montserrat, sans-serif", overflow: "hidden", position: "relative",
+      boxSizing: "border-box",
+    }}>
+
+      {/* SVG diagram */}
+      <motion.svg
+        viewBox="0 0 1000 490"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: "100%", height: "100%", display: "block", zIndex: 1 }}
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.75, delay: 0.1 }}
+      >
+        <defs>
+          <filter id="glw" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="3.5" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <radialGradient id="cGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stopColor="#818cf8" />
+            <stop offset="100%" stopColor="#4338ca" />
+          </radialGradient>
+          {CONNS.map(c => (
+            <marker key={c.id} id={`mk-${c.id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <polygon points="0 1,6 3,0 5" fill={c.color} opacity="0.8" />
+            </marker>
+          ))}
+        </defs>
+
+        <g transform="translate(0, 0)">
+
+          {/* ── Connection lines ── */}
+          {CONNS.map((c) => {
+            const { nx, ny } = dir(c.from, c.to);
+            const lx1 = c.from.x + nx * (c.r1 + 2),  ly1 = c.from.y + ny * (c.r1 + 2);
+            const lx2 = c.to.x   - nx * (c.r2 + 9),  ly2 = c.to.y   - ny * (c.r2 + 9);
+            const hl = active === null
+              || (c.id === "s-c" && (active === "sites"  || active === "center"))
+              || (c.id === "p-c" && (active === "phones" || active === "center"))
+              || (c.id === "c-l" && (active === "center" || active === "leads"))
+              || (c.id === "l-d" && (active === "leads"  || active === "deal"));
+            return (
+              <g key={c.id} opacity={hl ? 1 : 0.1} style={{ transition: "opacity 0.3s" }}>
+                <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke={c.color} strokeWidth="0.8" opacity={0.18} />
+                <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke="transparent" strokeWidth="1.5" markerEnd={`url(#mk-${c.id})`} />
+                <DashedLine x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay} />
+                <Particle x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay} />
+                <Particle x1={lx1} y1={ly1} x2={lx2} y2={ly2} color={c.color} delay={c.delay + 0.9} />
+              </g>
+            );
+          })}
+
+          {/* ── Satellite nodes ── */}
+          {NODES.map((node, i) => (
+            <g key={node.id} opacity={dim(node.id) ? 0.18 : 1} style={{ transition: "opacity 0.3s" }}>
+              <SatNode node={node} active={active === node.id} onHover={setActive} idx={i} />
+            </g>
+          ))}
+
+          {/* ── Center node ── */}
+          <g opacity={dim("center") ? 0.18 : 1} style={{ transition: "opacity 0.3s" }}>
+            <CenterNode active={active === "center"} onHover={setActive} />
+          </g>
+
+          {/* ── Flow labels ── */}
+          {flowLabels.map((l, i) => (
+            <motion.text key={i} x={l.x} y={l.y} textAnchor="middle"
+              fill={l.color} fontSize="9" fontWeight="700" fontFamily="Montserrat, sans-serif"
+              initial={{ opacity: 0 }} animate={{ opacity: 0.65 }}
+              transition={{ delay: 0.9 + i * 0.12 }}
+            >{l.text}</motion.text>
+          ))}
+
+          {/* ── Tooltip cards (поверх всего) ── */}
+          {["sites", "phones", "center", "leads", "deal"].map(id => (
+            <TooltipCard key={id} id={id} active={active === id} />
+          ))}
+
+        </g>
+      </motion.svg>
+    </div>
+  );
+}
